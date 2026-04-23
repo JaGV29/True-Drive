@@ -154,44 +154,31 @@ void GestorFlota::despacharVehiculo() {
     Categoria   catDeseada = leerCategoria();
     std::string catStr     = (catDeseada == Categoria::Ejecutiva) ? "Ejecutiva" : "Tradicional";
 
-    // Iterar buscando el PRIMER vehículo de la categoría solicitada
-    std::vector<Vehiculo> vec = vehiculosEnEspera.toVector();
-    int idx = -1;
-    for (int i = 0; i < (int)vec.size(); i++) {
-        if (vec[i].getCategoria() == catDeseada) { idx = i; break; }
-    }
+    auto asignado = vehiculosEnEspera.eliminarSi(
+        [catDeseada](const Vehiculo& v){ return v.getCategoria() == catDeseada; });
 
-    if (idx == -1) {
+    if (!asignado) {
         std::cout << "\n  No hay vehículos de categoría " << catStr
                   << " disponibles en este momento.\n";
         return;
     }
 
-    // Solicitar datos del viaje
     std::string origen  = leerLinea("  Punto de salida    : ");
     std::string destino = leerLinea("  Destino            : ");
     double      costo   = leerDouble("  Costo del viaje ($): ");
 
-    // Asignar viaje y extraer de la cola
-    vec[idx].setPuntoSalida(origen);
-    vec[idx].setDestino(destino);
-    vec[idx].setCosto(costo);
-    Vehiculo asignado = vec[idx];
-
-    // Reconstruir vehiculosEnEspera sin el vehículo extraído
-    vehiculosEnEspera.limpiar();
-    for (int i = 0; i < (int)vec.size(); i++) {
-        if (i != idx) vehiculosEnEspera.encolar(vec[i]);
-    }
-    vehiculosEnRuta.encolar(asignado);
+    asignado->setPuntoSalida(origen);
+    asignado->setDestino(destino);
+    asignado->setCosto(costo);
+    vehiculosEnRuta.encolar(*asignado);
 
     std::cout << "\n  [OK] Vehículo asignado exitosamente.\n";
     std::cout << "  ─────────────────────────────────────\n";
-    std::cout << "  Correlativo : " << asignado.getCorrelativo()                              << "\n";
-    std::cout << "  Placa       : " << asignado.getPlaca()                                    << "\n";
-    std::cout << "  Categoría   : " << asignado.getCategoriaStr()                             << "\n";
-    std::cout << "  Conductor   : " << asignado.getConductor().getNombre()
-              << " "                << asignado.getConductor().getApellido()                  << "\n";
+    std::cout << "  Correlativo : " << asignado->getCorrelativo()                              << "\n";
+    std::cout << "  Placa       : " << asignado->getPlaca()                                    << "\n";
+    std::cout << "  Categoría   : " << asignado->getCategoriaStr()                             << "\n";
+    std::cout << "  Conductor   : " << asignado->getConductor().getNombre()
+              << " "                << asignado->getConductor().getApellido()                  << "\n";
     std::cout << "  Origen      : " << origen                                                 << "\n";
     std::cout << "  Destino     : " << destino                                                << "\n";
     std::cout << "  Costo       : $" << std::fixed << std::setprecision(2) << costo           << "\n";
@@ -209,37 +196,25 @@ void GestorFlota::recibirVehiculo() {
 
     int correlativo = leerEntero("\n  Correlativo del vehículo que retorna: ");
 
-    std::vector<Vehiculo> vec = vehiculosEnRuta.toVector();
-    int idx = -1;
-    for (int i = 0; i < (int)vec.size(); i++) {
-        if (vec[i].getCorrelativo() == correlativo) { idx = i; break; }
-    }
+    auto retornado = vehiculosEnRuta.eliminarSi(
+        [correlativo](const Vehiculo& v){ return v.getCorrelativo() == correlativo; });
 
-    if (idx == -1) {
+    if (!retornado) {
         std::cout << "\n  [ERROR] No se encontró el correlativo "
                   << correlativo << " entre los vehículos en ruta.\n";
         return;
     }
 
-    Vehiculo retornado = vec[idx];
-
-    // Reconstruir vehiculosEnRuta sin el vehículo que retorna
-    vehiculosEnRuta.limpiar();
-    for (int i = 0; i < (int)vec.size(); i++) {
-        if (i != idx) vehiculosEnRuta.encolar(vec[i]);
-    }
-
-    // Limpiar datos del viaje y reingresar AL FINAL de espera
-    retornado.setPuntoSalida("");
-    retornado.setDestino("");
-    retornado.setCosto(0.0);
-    vehiculosEnEspera.encolar(retornado);
+    retornado->setPuntoSalida("");
+    retornado->setDestino("");
+    retornado->setCosto(0.0);
+    vehiculosEnEspera.encolar(*retornado);
 
     std::cout << "\n  [OK] Vehículo reingresado al final de la cola de espera.\n";
-    std::cout << "       Correlativo : " << retornado.getCorrelativo()                       << "\n";
-    std::cout << "       Placa       : " << retornado.getPlaca()                             << "\n";
-    std::cout << "       Conductor   : " << retornado.getConductor().getNombre()
-              << " "                     << retornado.getConductor().getApellido()           << "\n";
+    std::cout << "       Correlativo : " << retornado->getCorrelativo()                       << "\n";
+    std::cout << "       Placa       : " << retornado->getPlaca()                             << "\n";
+    std::cout << "       Conductor   : " << retornado->getConductor().getNombre()
+              << " "                     << retornado->getConductor().getApellido()           << "\n";
 }
 
 // ── Tabla estándar: vehículos en espera ──────────────────────────────────────

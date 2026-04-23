@@ -1,6 +1,7 @@
 #ifndef COLA_H
 #define COLA_H
 
+#include <optional>
 #include <vector>
 
 template <typename T>
@@ -29,6 +30,10 @@ public:
     bool estaVacia()   const;
     int  getCantidad() const;
     void limpiar();
+
+    // Elimina el primer elemento que cumple el predicado y lo devuelve
+    template<typename Pred>
+    std::optional<T> eliminarSi(Pred pred);
 
     // Copia todos los elementos a un vector para recorrer sin modificar la cola
     std::vector<T> toVector() const;
@@ -80,6 +85,30 @@ int Cola<T>::getCantidad() const { return cantidad; }
 template <typename T>
 void Cola<T>::limpiar() {
     while (!estaVacia()) desencolar();
+}
+
+template <typename T>
+template <typename Pred>
+std::optional<T> Cola<T>::eliminarSi(Pred pred) {
+    Nodo* anterior = nullptr;
+    Nodo* actual   = frente;
+    while (actual != nullptr) {
+        if (pred(actual->dato)) {
+            T dato = actual->dato;
+            if (anterior == nullptr)
+                frente = actual->siguiente;
+            else
+                anterior->siguiente = actual->siguiente;
+            if (actual == fondo)
+                fondo = anterior;
+            delete actual;
+            cantidad--;
+            return dato;
+        }
+        anterior = actual;
+        actual   = actual->siguiente;
+    }
+    return std::nullopt;
 }
 
 template <typename T>
